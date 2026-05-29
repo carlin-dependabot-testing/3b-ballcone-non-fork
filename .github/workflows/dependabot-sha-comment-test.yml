@@ -1,0 +1,81 @@
+# Test: How does Dependabot treat SHA-pinned actions with different version comment styles?
+#
+# Scenarios:
+#   1. SHA pinned to v3 tag commit, comment says "v3" (major only)
+#   2. SHA pinned to v3.5.3 tag commit, comment says "v3.5.3" (full semver)
+#   3. SHA pinned to v3 tag commit, comment says "v3.5.3" (mismatched: SHA is v3/v3.6.0, comment says v3.5.3)
+#   4. SHA pinned to v4.0.0 tag commit, comment says "v4" (major only, but SHA is a specific patch)
+#   5. SHA pinned to v4.0.0 tag commit, comment says "v4.0.0" (full semver)
+#   6. SHA pinned to v4 tag commit (latest v4.x), comment says "v4" (already on latest major)
+#
+# Current latest: actions/checkout v6.0.2, actions/setup-python v6.2.0
+#
+# Questions we're answering:
+#   - Does the comment version affect what Dependabot updates TO?
+#   - Does "# v4" get treated as "stay on v4.x" vs "# v4.0.3" as "stay on v4.0.x"?
+#   - Or does Dependabot always bump to the latest regardless?
+
+name: Dependabot SHA Comment Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  scenario-1-sha-v3-comment-major:
+    name: "SHA=v3 tag, comment=v3 (major only)"
+    runs-on: ubuntu-latest
+    steps:
+      # SHA f43a0e5 is the commit actions/checkout v3 tag points to (= v3.6.0)
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+
+  scenario-2-sha-v3-5-3-comment-full:
+    name: "SHA=v3.5.3 tag, comment=v3.5.3 (full semver)"
+    runs-on: ubuntu-latest
+    steps:
+      # SHA c85c95e is the commit actions/checkout v3.5.3 tag points to
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+
+  scenario-3-sha-v3-comment-mismatched:
+    name: "SHA=v3 tag (v3.6.0), comment=v3.5.3 (mismatch)"
+    runs-on: ubuntu-latest
+    steps:
+      # SHA is from v3 tag (= v3.6.0) but comment says v3.5.3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.5.3
+
+  scenario-4-sha-v4-0-0-comment-major:
+    name: "SHA=v4.0.0, comment=v4 (major only)"
+    runs-on: ubuntu-latest
+    steps:
+      # SHA 1e31de5 is the commit actions/checkout v4.0.0 tag points to
+      - uses: actions/checkout@1e31de5234b9f8995739874a8ce0492dc87873e2 # v4
+
+  scenario-5-sha-v4-0-0-comment-full:
+    name: "SHA=v4.0.0, comment=v4.0.0 (full semver)"
+    runs-on: ubuntu-latest
+    steps:
+      # SHA 1e31de5 is the commit actions/checkout v4.0.0 tag points to
+      - uses: actions/checkout@1e31de5234b9f8995739874a8ce0492dc87873e2 # v4.0.0
+
+  scenario-6-sha-v4-latest-comment-major:
+    name: "SHA=v4 tag (latest v4.x), comment=v4"
+    runs-on: ubuntu-latest
+    steps:
+      # SHA 34e1148 is the commit the v4 tag currently points to (latest v4.x)
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+  # Same tests but with setup-python to confirm behavior isn't action-specific
+  scenario-7-setup-python-sha-v4-comment-major:
+    name: "setup-python: SHA=v4 tag, comment=v4"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      # SHA 7f4fc3e is actions/setup-python v4 tag
+      - uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4
+
+  scenario-8-setup-python-sha-v4-0-0-comment-full:
+    name: "setup-python: SHA=v4.0.0, comment=v4.0.0"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      # SHA d09bd5e is actions/setup-python v4.0.0 tag
+      - uses: actions/setup-python@d09bd5e6005b175076f227b13d9730d56e9dcfcb # v4.0.0
